@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+    xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:spring="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <apikit:config xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+        name="global-weather-api-config" raml="global-weather-api.raml"
+        consoleEnabled="false" doc:name="Router" />
+    <flow name="global-weather-api-main">
+        <http:listener xmlns:http="http://www.mulesoft.org/schema/mule/http"
+            config-ref="global-weather-api-httpListenerConfig" path="/api/*"
+            doc:name="HTTP" />
+        <timer-interceptor doc:name="Request Response Time Logger" />
+        <http:basic-security-filter realm="weather_api_security_manager"
+            doc:name="Basic Auth" />
+        <apikit:router xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+            config-ref="global-weather-api-config" doc:name="APIkit Router" />
+        <exception-strategy
+            ref="global-weather-api-apiKitGlobalExceptionMapping"
+            doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="global-weather-api-console">
+        <http:listener xmlns:http="http://www.mulesoft.org/schema/mule/http"
+            config-ref="global-weather-api-httpListenerConfig" path="/api/console/*"
+            doc:name="HTTP" />
+        <apikit:console xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+            config-ref="global-weather-api-config" doc:name="APIkit Console" />
+    </flow>
+
+    <flow name="get:/countries:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message=" #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-countries" doc:name="Read All Countries" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+    <flow name="get:/countries/{country}:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-country" doc:name="read-country" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+    <flow name="get:/countries/{country}/weather:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-country-weather" doc:name="Read Country Weather" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+    <flow name="get:/countries/{country}/cities:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-cities-by-country" doc:name="Read All Cities" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+    <flow
+        name="get:/countries/{country}/cities/{city}:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-city-by-city-and-country"
+            doc:name="Read City" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+    <flow
+        name="get:/countries/{country}/cities/{city}/weather:global-weather-api-config">
+        <set-variable variableName="logContextId" value="#[function:uuid]"
+            doc:name="Set Resource ContextID" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] Start the flow to retrieve all countries."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="read-city-weather" doc:name="read-city-weather" />
+        <logger
+            message="[ #[flowVars.logContextId] - #[flow.name] ] All available countries #[payload]."
+            level="INFO" doc:name="Logger" />
+    </flow>
+
+</mule>

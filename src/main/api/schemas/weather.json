@@ -1,0 +1,45 @@
+{
+  "$id": "https://example.com/weather.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "City",
+  "type": "object",
+  "properties": {
+    "location": {
+      "type": "string",
+      "description": "Name of the city."
+    },
+    "time": {
+      "type": "string",
+      "description": "Time, The reading was taken."
+    },
+    "wind": {
+      "type": "string",
+      "description": "Speed of the wind in km/h. Refactor it"
+    },
+    "visibility": {
+      "type": "string",
+      "description": "Visibility in Km."
+    },
+    "skyConditions": {
+      "type": "string",
+      "description": "Sky Conditions."
+    },
+    "temperature": {
+      "type": "string",
+      "description": "temperature at that time."
+    },
+    "dewPoint": {
+      "type": "string",
+      "description": "dewPoint at that location."
+    },
+    "relativeHumidity": {
+      "type": "string",
+      "description": "relativeHumidity at that moment."
+    },
+    "status": {
+      "type": "string",
+      "description": "Overall status."
+    }
+    
+  }
+}

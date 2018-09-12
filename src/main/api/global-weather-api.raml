@@ -1,0 +1,215 @@
+#%RAML 1.0
+title: Global API
+protocols: [HTTP]
+baseUri: http://127.0.0.1:8585/api
+
+securitySchemes:
+  basicAuth:
+    description: Each request must contain the headers necessary for basic authentication
+    type: Basic Authentication
+    describedBy:
+      headers:
+        Authorization:
+          description: Used to send the "username:password" credentials
+          type: string
+      responses:
+        401:
+          description: |
+            Unauthorized. Either the provided username and password
+            combination is invalid, or the user is not allowed to access
+            the content provided by the requested URL.
+          body:
+            application/json:
+              example: !include examples/error/401.json
+types:
+  City: !include schemas/city.json
+  Cities: !include schemas/cities.json
+  Country: !include schemas/country.json
+  Weather: !include schemas/weather.json
+securedBy: basicAuth
+
+
+/countries:
+  displayName: Get List of Unique Countries 
+  get:
+      description: Retrieve Selected Elements.
+      displayName:  Single Elements
+      responses: 
+        200:
+          body:
+            application/json: 
+              example: !include examples/countries.json
+              type: Cities
+        400:
+          body: 
+            application/json: 
+              example: !include examples/error/400.json
+        404:
+          body: 
+            application/json: 
+              example: !include examples/error/404.json
+        405:
+          body: 
+            application/json: 
+              example: !include examples/error/405.json
+        415:
+          body: 
+            application/json: 
+              example: !include examples/error/415.json
+        500:
+          body: 
+            application/json: 
+              example: !include examples/error/500.json
+  /{country}:
+    displayName: Get a Country
+    get:
+      description: Retrieve Selected Elements.
+      displayName:  Singal Elements
+      responses: 
+        200:
+          body:
+            application/json: 
+              example: !include examples/country.json
+              type: Country
+        400:
+          body: 
+            application/json: 
+              example: !include examples/error/400.json
+        404:
+          body: 
+            application/json: 
+              example: !include examples/error/404.json
+        405:
+          body: 
+            application/json: 
+              example: !include examples/error/405.json
+        415:
+          body: 
+            application/json: 
+              example: !include examples/error/415.json
+        500:
+          body: 
+            application/json: 
+              example: !include examples/error/500.json
+    /weather:
+      displayName: Get the weather of the Country
+      get:
+        description: Retrieve Selected Elements.
+        displayName:  Singal Elements
+        responses: 
+          200:
+            body:
+              application/json: 
+                example: !include examples/weather.json
+                type: Weather
+          400:
+            body: 
+              application/json: 
+                example: !include examples/error/400.json
+          404:
+            body: 
+              application/json: 
+                example: !include examples/error/404.json
+          405:
+            body: 
+              application/json: 
+                example: !include examples/error/405.json
+          415:
+            body: 
+              application/json: 
+                example: !include examples/error/415.json
+          500:
+            body: 
+              application/json: 
+                example: !include examples/error/500.json
+    /cities:
+      displayName: Get the cities of the Country
+      get:
+        description: Retrieve Selected Elements.
+        displayName:  Single City
+        responses: 
+          200:
+            body:
+              application/json: 
+                example: !include examples/cities.json
+          400:
+            body: 
+              application/json: 
+                example: !include examples/error/400.json
+          404:
+            body: 
+              application/json: 
+                example: !include examples/error/404.json
+          405:
+            body: 
+              application/json: 
+                example: !include examples/error/405.json
+          415:
+            body: 
+              application/json: 
+                example: !include examples/error/415.json
+          500:
+            body: 
+              application/json: 
+                example: !include examples/error/500.json
+          
+      /{city}:
+        get:
+            description: Retrieve Selected Elements.
+            displayName:  Singal Elements
+            responses: 
+              200:
+                body:
+                  application/json: 
+                    example: !include examples/city.json
+                    type: City
+              400:
+                body: 
+                  application/json: 
+                    example: !include examples/error/400.json
+              404:
+                body: 
+                  application/json: 
+                    example: !include examples/error/404.json
+              405:
+                body: 
+                  application/json: 
+                    example: !include examples/error/405.json
+              415:
+                body: 
+                  application/json: 
+                    example: !include examples/error/415.json
+              500:
+                body: 
+                  application/json: 
+                    example: !include examples/error/500.json 
+        /weather:
+          get:
+            description: Retrieve Selected Elements.
+            displayName:  Singal Elements
+            responses: 
+              200:
+                body:
+                  application/json: 
+                    example: !include examples/weather.json
+                    type: Weather
+              400:
+                body: 
+                  application/json: 
+                    example: !include examples/error/400.json
+              404:
+                body: 
+                  application/json: 
+                    example: !include examples/error/404.json
+              405:
+                body: 
+                  application/json: 
+                    example: !include examples/error/405.json
+              415:
+                body: 
+                  application/json: 
+                    example: !include examples/error/415.json
+              500:
+                body: 
+                  application/json: 
+                    example: !include examples/error/500.json

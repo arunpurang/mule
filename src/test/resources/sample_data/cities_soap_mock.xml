@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GetCitiesByCountryResponse xmlns="http://www.webserviceX.NET"
+	xmlns:tns="http://www.webserviceX.NET" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/"
+	xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><![CDATA[<NewDataSet>
+  <Table>
+    <Country>Australia</Country>
+    <City>Archerfield Aerodrome</City>
+  </Table>
+  <Table>
+    <Country>Australia</Country>
+    <City>Amberley Aerodrome</City>
+  </Table>
+</NewDataSet>]]></GetCitiesByCountryResponse>

@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+    xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+    xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+    xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:spring="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+
+    <!-- Reusable Components -->
+    <sub-flow name="xml-decode">
+        <scripting:transformer doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[
+                import org.mule.util.XMLEntityCodec;
+                return XMLEntityCodec.decodeString(payload);]]>
+            </scripting:script>
+        </scripting:transformer>
+    </sub-flow>
+    <sub-flow name="parse-country">
+        <flow-ref name="xml-decode" />
+        <dw:transform-message doc:name="Transform Message"
+            metadata:id="23b24dd2-6bdc-4c6e-8b57-5605ed92d269">
+            <dw:input-payload doc:sample="citiesByCountry.xml"
+                mimeType="application/xml" />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload.NewDataSet.*Table map (country,countryIndex) -> {
+    country : {
+        name: country.Country   
+    } 
+}) distinctBy $.country.name when payload != null otherwise []]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+    <sub-flow name="parse-city">
+        <flow-ref name="xml-decode" />
+        <dw:transform-message doc:name="Transform Message"
+            metadata:id="23b24dd2-6bdc-4c6e-8b57-5605ed92d269">
+            <dw:input-payload doc:sample="citiesByCountry.xml"
+                mimeType="application/xml" />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload.NewDataSet.*Table map (city,cityIndex) -> {
+    city : {
+        name: city.City   
+    } 
+}) distinctBy $.city.name when payload != null otherwise []]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+    <!-- End Resuable Components -->
+
+    <sub-flow name="read-country-weather">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns01 http://localhost:8080/GlobalWeather
+---
+{
+	ns01#GetWeather: {
+		ns01#CityName: "Melbourne Airport",
+		ns01#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetWeather" doc:name="Read Country Weather" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetWeatherResponse')]" doc:name="Expression" />
+        <scripting:transformer doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[
+				return payload.replaceAll("\\<\\!\\[CDATA\\[","").replaceAll("\\]\\]\\>","")]]>
+            </scripting:script>
+        </scripting:transformer>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] After Removing CDATA from response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <flow-ref name="xml-decode" />
+        <dw:transform-message doc:name="Transform Message"
+            metadata:id="9b3cab26-895f-4682-9ba3-9dde2ef9fe17">
+            <dw:input-payload mimeType="application/xml" />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	location: payload.NewDataSet.Location as :string,
+	time: payload.NewDataSet.Time,
+	wind: payload.NewDataSet.Wind,
+	visibility: payload.NewDataSet.Visibility,
+	skyConditions: payload.NewDataSet.SkyConditions,
+	temperature: payload.NewDataSet.Temperature,
+	dewPoint: payload.NewDataSet.DewPoint,
+	relativeHumidity: payload.NewDataSet.RelativeHumidity,
+	status: payload.NewDataSet.Status
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+    </sub-flow>
+
+    <sub-flow name="read-city-weather">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns01 http://localhost:8080/GlobalWeather
+---
+{
+	ns01#GetWeather: {
+		ns01#CityName: flowVars.city,
+		ns01#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetWeather" doc:name="Read City Weather" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetWeatherResponse')]" doc:name="Expression" />
+        <scripting:transformer doc:name="Groovy">
+            <scripting:script engine="Groovy"><![CDATA[
+				return payload.replaceAll("\\<\\!\\[CDATA\\[","").replaceAll("\\]\\]\\>","")]]>
+            </scripting:script>
+        </scripting:transformer>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] After Removing CDATA from response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <dw:transform-message doc:name="Transform Message"
+            metadata:id="9b3cab26-895f-4682-9ba3-9dde2ef9fe17">
+            <dw:input-payload mimeType="application/xml" />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	location: payload.NewDataSet.Location as :string,
+	time: payload.NewDataSet.Time,
+	wind: payload.NewDataSet.Wind,
+	visibility: payload.NewDataSet.Visibility,
+	skyConditions: payload.NewDataSet.SkyConditions,
+	temperature: payload.NewDataSet.Temperature,
+	dewPoint: payload.NewDataSet.DewPoint,
+	relativeHumidity: payload.NewDataSet.RelativeHumidity,
+	status: payload.NewDataSet.Status
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+    </sub-flow>
+    <sub-flow name="read-cities-by-country">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://localhost:8080/GlobalWeather
+---
+{
+	ns0#GetCitiesByCountry: {
+		ns0#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetCitiesByCountry" doc:name="Read Cities By Country Name" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetCitiesByCountryResponse')]"
+            doc:name="Expression" />
+        <flow-ref name="xml-decode" />
+        <dw:transform-message doc:name="Transform Message"
+            metadata:id="23b24dd2-6bdc-4c6e-8b57-5605ed92d269">
+            <dw:input-payload doc:sample="citiesByCountry.xml"
+                mimeType="application/xml" />
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload.NewDataSet.*Table map (city,cityIndex) -> {
+	city : {
+        name: city.City 
+    }
+}) distinctBy $.city.name when payload != null otherwise []]]></dw:set-payload>
+        </dw:transform-message>
+    </sub-flow>
+
+    <sub-flow name="read-countries">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://localhost:8080/GlobalWeather
+---
+{
+	ns0#GetCitiesByCountry: {
+		ns0#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetCitiesByCountry" doc:name="Read All Countries Names" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetCitiesByCountryResponse')]"
+            doc:name="Expression" />
+        <flow-ref name="parse-country" />
+    </sub-flow>
+
+
+
+
+
+    <sub-flow name="read-country">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://localhost:8080/GlobalWeather
+---
+{
+	ns0#GetCitiesByCountry: {
+		ns0#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetCitiesByCountry" doc:name="Get Country" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Response Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetCitiesByCountryResponse')]"
+            doc:name="Expression" />
+        <flow-ref name="parse-country" />
+    </sub-flow>
+
+    <sub-flow name="read-city-by-city-and-country">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://localhost:8080/GlobalWeather
+---
+{
+	ns0#GetCitiesByCountry: {
+		ns0#CountryName: flowVars.country
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <ws:consumer config-ref="Weather_SOAP_API_Consumer"
+            operation="GetCitiesByCountry" doc:name="Read City From Country" />
+        <logger
+            message="[ #[flowVars.apiContextId] - #[flow.name] ] Request Body : #[message.payloadAs(java.lang.String)]."
+            level="INFO" doc:name="Logger" />
+        <expression-transformer mimeType="application/xml"
+            expression="#[xpath3('//*:GetCitiesByCountryResponse')]"
+            doc:name="Expression" />
+        <flow-ref name="xml-decode" />
+        <flow-ref name="parse-city" />
+    </sub-flow>
+</mule>
